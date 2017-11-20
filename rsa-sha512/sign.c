@@ -32,14 +32,15 @@ unsigned char* sha512sum(char* inputFile) {
 
 
 int main(int argc, char* argv[]) {
-	if (argc !=3 ) {
-		fprintf(stderr, "Poprawna skladnia:\n sign nazwaPlikuDoPodpisania nazwaPlikuKluczaPrywatnego\n");
+
+  if (argc !=3 ) {
+		printf("Usage: ./sign [file_to_sign] [private_key]\n");
 		return 1;
 	}
 
-	char* keyFileName = argv[2];
-	char* toSignFileName = argv[1];
-	char* signFileName;
+  char* filenameToSign = argv[1];
+	char* filenameKey = argv[2];
+	char* signatureFilename;
 
 	FILE* keyFile;
 	FILE* signFile;
@@ -47,52 +48,52 @@ int main(int argc, char* argv[]) {
 	long keySize;
 	RSA* rsaPrivateKey;
 
-	unsigned char* md5Vector;
+	unsigned char* hashVector;
 
 	unsigned char* buffer;
 	unsigned char* buffer2;
 
-	signFileName=(char*)malloc(130);
-	strcpy(signFileName,toSignFileName);
+	signatureFilename = (char*) malloc(130);
+	strcpy(signatureFilename, filenameToSign);
 	const char *ext = ".sig";
-	strcat(signFileName, ext);
+	strcat(signatureFilename, ext);
 
-	rsaPrivateKey=RSA_new();
-	if ( (keyFile=fopen(keyFileName, "rb")) == NULL ) {
-		fprintf(stderr, "Nie moge otworzyc pliku do odczytu klucza prywatnego\n");
+	rsaPrivateKey = RSA_new();
+	if ((keyFile = fopen(filenameKey, "rb")) == NULL ) {
+		printf("Cannot open private key\n");
 		return 1;
 	}
 
 	fseek(keyFile, 0, SEEK_END);
-	keySize=ftell(keyFile);
+	keySize = ftell(keyFile);
 	rewind(keyFile);
 
-	buffer=(unsigned char*)malloc(keySize*sizeof(unsigned char));
-	buffer2=buffer;
+	buffer = (unsigned char*) malloc(keySize*sizeof(unsigned char));
+	buffer2 = buffer;
 	fread(buffer, sizeof(unsigned char), keySize, keyFile);
 
-	d2i_RSAPrivateKey(&rsaPrivateKey,(const unsigned char**)&buffer2,keySize);
+	d2i_RSAPrivateKey(&rsaPrivateKey, (const unsigned char**) &buffer2, keySize);
 
 	fclose(keyFile);
 	free(buffer);
 
-	if( rsaPrivateKey == NULL ) {
-		fprintf(stderr, "Nie moge wczytac klucza prywatnego\n");
+	if(rsaPrivateKey == NULL) {
+		printf("Cannot read private key\n");
 		return 1;
 	}
 
-	// md5Vector=md5sum(toSignFileName);
-  md5Vector = sha512sum(toSignFileName);
+  hashVector = sha512sum(filenameToSign);
 
-	buffer=(unsigned char*)malloc(RSA_size(rsaPrivateKey));//miejsce na podpis
+  //buffer to keep signature
+	buffer = (unsigned char*) malloc(RSA_size(rsaPrivateKey));
 	unsigned int signLength;
-	if( (RSA_sign(NID_sha512,md5Vector,sizeof(md5Vector),buffer,&signLength,rsaPrivateKey)) == 0 ) {
-		fprintf(stderr, "Nie udalo sie podpisac pliku\n");
+	if((RSA_sign(NID_sha512, hashVector, sizeof(hashVector), buffer, &signLength, rsaPrivateKey)) == 0) {
+		printf("Error while trying to sign the file\n");
 		return 1;
 	}
 
-	if( (signFile=fopen(signFileName,"wb")) == NULL ) {
-		fprintf(stderr, "Nie udalo sie otworzyc pliku do zapisu podpisu\n");
+	if((signFile = fopen(signatureFilename, "wb")) == NULL) {
+		printf("Cannot open/create file to keep signature\n");
 		return 1;
 	}
 	fwrite(buffer, sizeof(unsigned char), signLength, signFile);
@@ -101,8 +102,8 @@ int main(int argc, char* argv[]) {
 	fclose(signFile);
 
 	free(buffer);
-	free(md5Vector);
-	free(signFileName);
+	free(hashVector);
+	free(signatureFilename);
 	RSA_free(rsaPrivateKey);
 
 	return 0;
