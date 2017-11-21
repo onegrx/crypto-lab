@@ -1,0 +1,3 @@
+gcc keygen.c -o keygen -lssl -lcrypto -L/usr/local/opt/openssl/lib -I/usr/local/opt/openssl/include
+gcc sign.c -o sign -lssl -lcrypto -L/usr/local/opt/openssl/lib -I/usr/local/opt/openssl/include
+gcc verify.c -o verify -lssl -lcrypto -L/usr/local/opt/openssl/lib -I/usr/local/opt/openssl/include
